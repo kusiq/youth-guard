@@ -432,7 +432,8 @@ select,
   align-items: center;
   gap: 0.45rem;
   min-height: 2.7rem;
-  padding: 0.72rem 1.05rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-muted);
   white-space: nowrap;
@@ -441,6 +442,7 @@ select,
 .site-nav__link:hover,
 .site-nav__link.is-active {
   background: var(--accent-soft);
+  border-color: var(--line-strong);
   color: var(--text);
 }
 
@@ -532,8 +534,8 @@ select,
 .home-hero__content {
   position: relative;
   z-index: 1;
-  padding-top: clamp(3rem, 5vw, 3.8rem);
-  padding-bottom: clamp(2.35rem, 4vw, 3rem);
+  padding-top: clamp(2rem, 5vw, 2rem);
+  padding-bottom: clamp(2rem, 4vw, 2rem);
   color: #fff6f2;
   animation: fade-up 700ms ease-out both;
 }
@@ -1115,22 +1117,24 @@ select,
 .auth-tabs {
   display: inline-flex;
   gap: 0.4rem;
-  padding: 0.3rem;
   border-radius: 999px;
-  background: var(--surface-soft);
+  background: color-mix(in srgb, var(--surface-soft) 88%, var(--bg) 12%);
   margin-bottom: 1.2rem;
 }
 
 .auth-tabs__button {
   min-height: 2.7rem;
   padding: 0.55rem 1rem;
+  border: 1px solid var(--line);
   border-radius: 999px;
+  background: var(--surface);
   color: var(--text-muted);
 }
 
 .auth-tabs__button.is-active,
 .auth-tabs__button:hover {
   background: var(--surface-strong);
+  border-color: var(--line-strong);
   color: var(--text);
 }
 
@@ -1477,6 +1481,11 @@ select,
   .site-header__actions .button {
     min-height: 3rem;
     padding-inline: 1rem;
+  }
+
+  .site-nav__link {
+    border-color: var(--line);
+    background: var(--surface-strong);
   }
 
   .theme-toggle__label,
