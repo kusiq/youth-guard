@@ -313,6 +313,7 @@ select,
   position: sticky;
   top: 0;
   z-index: 20;
+  overflow: visible;
   backdrop-filter: blur(18px);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   border-bottom: 1px solid var(--line);
@@ -332,6 +333,7 @@ select,
   width: min(1320px, calc(100% - (var(--content-gutter) * 2)));
   margin: 0 auto;
   min-height: var(--header-height);
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -359,16 +361,19 @@ select,
 .site-brand__text {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.1rem;
 }
 
 .site-brand__text strong {
   font-size: 0.98rem;
+  line-height: 1.14;
 }
 
 .site-brand__text span {
   color: var(--text-muted);
   font-size: 0.84rem;
+  line-height: 1.12;
 }
 
 .menu-toggle {
@@ -1393,37 +1398,48 @@ select,
   }
 
   .site-header__inner {
-    flex-wrap: wrap;
-    padding: 0.9rem 0;
+    flex-wrap: nowrap;
+    gap: 0.8rem;
+    padding: 0.7rem 0;
     align-items: center;
   }
 
   .site-brand {
     flex: 1 1 auto;
+    min-width: 0;
   }
 
   .menu-toggle {
-    order: 2;
     margin-left: auto;
+    width: 2.9rem;
+    height: 2.9rem;
   }
 
   .site-header__panel {
-    order: 3;
-    width: 100%;
-    flex: 0 0 100%;
-    max-height: 0;
-    overflow: hidden;
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    left: 0;
+    right: 0;
+    z-index: 24;
+    width: auto;
+    padding: 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: calc(var(--radius-lg) - 2px);
+    background: var(--bg);
+    backdrop-filter: blur(22px);
+    box-shadow: var(--shadow);
     opacity: 0;
+    visibility: hidden;
     flex-direction: column;
     align-items: stretch;
-    transform: translateY(-6px);
+    gap: 0.8rem;
+    transform: translateY(-10px);
     pointer-events: none;
   }
 
   .site-header__panel.is-open {
-    max-height: 36rem;
-    padding: 0.55rem 0 0.9rem;
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
   }
@@ -1436,20 +1452,35 @@ select,
   .site-nav {
     display: grid;
     align-items: stretch;
-    gap: 0.6rem;
+    gap: 0.45rem;
   }
 
   .site-header__actions {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.65rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
   }
 
   .site-nav__link,
   .theme-toggle,
   .site-header__actions .button,
   .role-pill {
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
+    text-align: left;
+  }
+
+  .site-nav__link,
+  .theme-toggle,
+  .site-header__actions .button {
+    min-height: 3rem;
+    padding-inline: 1rem;
+  }
+
+  .theme-toggle__label,
+  .theme-toggle__label--compact {
+    text-align: left;
   }
 
   .home-hero {

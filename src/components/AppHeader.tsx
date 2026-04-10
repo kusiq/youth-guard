@@ -18,6 +18,7 @@ function getLinkClassName(isActive: boolean) {
 export function AppHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { isAuthenticated, session, signOut, unreadAppealCount } = useAppState()
+  const menuLabel = isMenuOpen ? 'Закрыть навигацию' : 'Открыть навигацию'
 
   const panelClassName = isMenuOpen
     ? 'site-header__panel is-open'
@@ -42,7 +43,8 @@ export function AppHeader() {
           className="menu-toggle"
           type="button"
           aria-expanded={isMenuOpen}
-          aria-label="Открыть навигацию"
+          aria-controls="site-header-panel"
+          aria-label={menuLabel}
           onClick={() =>
             setIsMenuOpen((currentValue) =>
               currentValue ? false : true,
@@ -54,7 +56,7 @@ export function AppHeader() {
           <span />
         </button>
 
-        <div className={panelClassName}>
+        <div className={panelClassName} id="site-header-panel">
           <nav className="site-nav" aria-label="Основная навигация">
             {primaryLinks.map((link) => (
               <NavLink
