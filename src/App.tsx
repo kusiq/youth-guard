@@ -11,6 +11,11 @@ const HomePage = lazy(() =>
 const NewsPage = lazy(() =>
   import('./pages/NewsPage').then((module) => ({ default: module.NewsPage })),
 )
+const NewsDetailPage = lazy(() =>
+  import('./pages/NewsDetailPage').then((module) => ({
+    default: module.NewsDetailPage,
+  })),
+)
 const AuthPage = lazy(() =>
   import('./pages/AuthPage').then((module) => ({ default: module.AuthPage })),
 )
@@ -34,6 +39,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<HomePage />} />
               <Route path="news" element={<NewsPage />} />
+              <Route path="news/:newsId" element={<NewsDetailPage />} />
               <Route path="auth" element={<AuthPage />} />
               <Route path="appeal/new" element={<AppealPage />} />
               <Route path="profile" element={<ProfilePage />} />

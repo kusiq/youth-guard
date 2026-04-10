@@ -83,7 +83,10 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     'youth-guard-profile',
     defaultProfile,
   )
-  const [news, setNews] = useState<NewsItem[]>(initialNews)
+  const [news, setNews] = useLocalStorageState<NewsItem[]>(
+    'youth-guard-news',
+    initialNews,
+  )
   const [appeals, setAppeals] = useState<Appeal[]>(initialAppeals)
 
   useEffect(() => {

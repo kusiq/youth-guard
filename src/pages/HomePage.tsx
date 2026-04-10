@@ -105,21 +105,30 @@ export function HomePage() {
             <p className="meta-line">
               {formatDate(featuredNews.createdAt)} · {featuredNews.author}
             </p>
-            <Link className="button button--secondary" to="/news">
-              Открыть полную ленту
-            </Link>
+            <div className="button-row">
+              <Link className="button button--secondary" to={`/news/${featuredNews.id}`}>
+                Открыть публикацию
+              </Link>
+              <Link className="button button--ghost" to="/news">
+                Открыть полную ленту
+              </Link>
+            </div>
           </div>
 
           <div className="news-stack" aria-label="Последние публикации">
             {recentNews.map((item) => (
-              <article key={item.id} className="news-stack__item">
+              <Link
+                key={item.id}
+                className="news-stack__item news-stack__item--link"
+                to={`/news/${item.id}`}
+              >
                 <div>
                   <p className="meta-line">{item.category}</p>
                   <h3>{item.title}</h3>
                 </div>
                 <p>{item.summary}</p>
                 <span>{formatDate(item.createdAt)}</span>
-              </article>
+              </Link>
             ))}
           </div>
         </div>

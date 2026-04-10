@@ -38,10 +38,12 @@ export function AuthPage() {
   return (
     <section className="page-shell">
       <div className="content-shell auth-grid">
-        <div>
+        <div className="auth-copy">
           <p className="eyebrow">Вход и регистрация</p>
-          <h1>Один вход, две роли, понятная логика доступа.</h1>
-          <p className="lead">
+          <h1 className="auth-copy__title">
+            Один вход, две роли, понятная логика доступа.
+          </h1>
+          <p className="lead auth-copy__lead">
             Пользователь получает профиль, обращения и историю активности. Администратор
             видит входящие обращения, уведомления и публикацию новостей.
           </p>

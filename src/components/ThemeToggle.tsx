@@ -12,7 +12,12 @@ export function ThemeToggle() {
       aria-label={nextThemeLabel}
     >
       <span className="theme-toggle__dot" aria-hidden="true" />
-      <span className="theme-toggle__label">{nextThemeLabel}</span>
+      <span className="theme-toggle__label theme-toggle__label--full">
+        {nextThemeLabel}
+      </span>
+      <span className="theme-toggle__label theme-toggle__label--compact">
+        Тема
+      </span>
     </button>
   )
 }

@@ -16,8 +16,8 @@ export function AccessNotice({
   return (
     <section className="access-notice content-shell">
       <p className="eyebrow">Нужен доступ</p>
-      <h1>{title}</h1>
-      <p className="lead">{description}</p>
+      <h1 className="access-notice__title">{title}</h1>
+      <p className="lead access-notice__lead">{description}</p>
       <div className="button-row">
         <Link className="button button--primary" to={to}>
           {actionLabel}
