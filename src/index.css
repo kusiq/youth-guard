@@ -28,7 +28,7 @@
   --content-max: 1120px;
   --content-gutter: clamp(1.25rem, 4vw, 3.5rem);
   --section-space: clamp(4rem, 7vw, 5rem);
-  --page-space: clamp(3.5rem, 6vw, 4.75rem);
+  --page-space: clamp(2.5rem, 6vw, 2.5rem);
   --panel-space: clamp(1.45rem, 2vw, 1.8rem);
   --panel-space-tight: clamp(1.15rem, 1.4vw, 1.35rem);
   font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
