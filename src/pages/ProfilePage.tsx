@@ -1,9 +1,24 @@
+import UploadRounded from '@mui/icons-material/UploadRounded'
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  Container,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useEffect, useState, useTransition } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import { AccessNotice } from '../components/AccessNotice'
 import { StatusBadge } from '../components/StatusBadge'
 import { interestOptions } from '../data/mockData'
 import { formatDate } from '../lib/format'
 import { readFileAsDataUrl } from '../lib/file'
+import { getInitials } from '../lib/person'
 import { useAppState } from '../state/AppState'
 import type { UserProfile } from '../types'
 
@@ -21,7 +36,7 @@ export function ProfilePage() {
     return (
       <AccessNotice
         title="Профиль доступен после входа."
-        description="В кабинете можно редактировать информацию о себе, загружать фото и отслеживать обращения."
+        description="В кабинете можно обновить данные, выбрать фото и отслеживать обращения."
         actionLabel="Открыть вход"
         to="/auth"
       />
@@ -37,7 +52,7 @@ export function ProfilePage() {
       return
     }
 
-    const avatar = await readFileAsDataUrl(file)
+    const avatar = await readFileAsDataUrl(file, { maxDimension: 512, quality: 0.8 })
     setForm((currentForm) => ({
       ...currentForm,
       avatar,
@@ -50,7 +65,7 @@ export function ProfilePage() {
     setForm((currentForm) => ({
       ...currentForm,
       interests: hasInterest
-        ? currentForm.interests.filter((item) => (item === interest ? false : true))
+        ? currentForm.interests.filter((item) => item !== interest)
         : [...currentForm.interests, interest],
     }))
   }
@@ -60,164 +75,237 @@ export function ProfilePage() {
 
     startTransition(() => {
       updateProfile(form)
-      setStatusMessage('Профиль обновлен. Изменения уже видны в шапке и личном кабинете.')
+      setStatusMessage('Профиль обновлён. Новые данные уже видны в кабинете.')
     })
   }
 
   return (
-    <section className="page-shell">
-      <div className="content-shell workspace-grid">
-        <div>
-          <div className="section-head section-head--compact">
-            <p className="eyebrow">Профиль</p>
-            <h1>Личный кабинет участника с понятной историей активности.</h1>
-          </div>
-          <p className="lead">
-            Здесь можно обновить информацию о себе, загрузить фото и видеть текущий
-            статус всех своих обращений без лишних переходов.
-          </p>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 2.5 } }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)' },
+        }}
+      >
+        <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+          <Stack spacing={2.25} component="form" onSubmit={handleSubmit}>
+            <Box>
+              <Typography variant="overline" color="text.secondary">
+                Профиль
+              </Typography>
+              <Typography variant="h2" sx={{ mt: 0.75 }}>
+                Личный кабинет
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                Обновите данные, загрузите фото и держите под рукой историю своих обращений.
+              </Typography>
+            </Box>
 
-          <form className="form-stack" onSubmit={handleSubmit}>
-            <label className="field">
-              <span>Фото профиля</span>
-              <input className="input input--file" type="file" accept="image/*" onChange={handleAvatarChange} />
-            </label>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ alignItems: { xs: 'flex-start', sm: 'center' } }}
+            >
+              <Avatar
+                src={form.avatar}
+                alt={form.displayName}
+                sx={{ width: 86, height: 86, fontSize: 28, bgcolor: 'primary.main' }}
+              >
+                {getInitials(form.displayName || session.displayName)}
+              </Avatar>
+              <Stack spacing={1}>
+                <Button component="label" variant="outlined" color="secondary" startIcon={<UploadRounded />}>
+                  Выбрать фото профиля
+                  <input hidden type="file" accept="image/*" onChange={handleAvatarChange} />
+                </Button>
+                <Typography variant="body2" color="text.secondary">
+                  Аватар будет показан в кабинете и рядом с вашими будущими комментариями.
+                </Typography>
+              </Stack>
+            </Stack>
 
-            {form.avatar === undefined ? null : (
-              <div className="avatar-preview">
-                <img src={form.avatar} alt="Фото профиля" />
-              </div>
-            )}
+            <TextField
+              label="Имя"
+              name="displayName"
+              autoComplete="name"
+              value={form.displayName}
+              onChange={(event) =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  displayName: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(event) =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  email: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              label="Город"
+              name="address-level2"
+              autoComplete="address-level2"
+              value={form.city}
+              onChange={(event) =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  city: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              label="Телефон"
+              name="tel"
+              type="tel"
+              autoComplete="tel"
+              slotProps={{ htmlInput: { inputMode: 'tel' } }}
+              value={form.phone}
+              onChange={(event) =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  phone: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              label="О себе"
+              name="bio"
+              multiline
+              minRows={4}
+              value={form.bio}
+              onChange={(event) =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  bio: event.target.value,
+                }))
+              }
+            />
 
-            <label className="field">
-              <span>Имя</span>
-              <input
-                className="input"
-                type="text"
-                value={form.displayName}
-                onChange={(event) =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    displayName: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Email</span>
-              <input
-                className="input"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    email: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Город</span>
-              <input
-                className="input"
-                type="text"
-                value={form.city}
-                onChange={(event) =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    city: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Телефон</span>
-              <input
-                className="input"
-                type="tel"
-                value={form.phone}
-                onChange={(event) =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    phone: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>О себе</span>
-              <textarea
-                className="textarea"
-                rows={5}
-                value={form.bio}
-                onChange={(event) =>
-                  setForm((currentForm) => ({
-                    ...currentForm,
-                    bio: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <fieldset className="field fieldset">
-              <legend>Интересы</legend>
-              <div className="chip-grid">
+            <Stack spacing={1.25}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                Интересы
+              </Typography>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
                 {interestOptions.map((interest) => {
                   const isSelected = form.interests.includes(interest)
 
                   return (
-                    <button
+                    <Chip
                       key={interest}
-                      className={isSelected ? 'chip is-selected' : 'chip'}
-                      type="button"
+                      label={interest}
+                      clickable
+                      color={isSelected ? 'primary' : 'default'}
+                      variant={isSelected ? 'filled' : 'outlined'}
                       onClick={() => toggleInterest(interest)}
-                    >
-                      {interest}
-                    </button>
+                    />
                   )
                 })}
-              </div>
-            </fieldset>
+              </Stack>
+            </Stack>
 
-            <button className="button button--primary" type="submit" disabled={isPending}>
-              {isPending ? 'Сохраняем профиль...' : 'Сохранить изменения'}
-            </button>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+              sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
+            >
+              <Button type="submit" variant="contained" disabled={isPending}>
+                {isPending ? 'Сохраняем профиль...' : 'Сохранить изменения'}
+              </Button>
+              {statusMessage === '' ? null : (
+                <Alert severity="success" sx={{ flex: 1 }}>
+                  {statusMessage}
+                </Alert>
+              )}
+            </Stack>
+          </Stack>
+        </Paper>
 
-            {statusMessage === '' ? null : (
-              <p className="feedback-message">{statusMessage}</p>
-            )}
-          </form>
-        </div>
+        <Stack spacing={2.5}>
+          <Paper sx={{ p: 2.5 }}>
+            <Stack spacing={2}>
+              <Typography variant="overline" color="text.secondary">
+                Карточка участника
+              </Typography>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <Avatar
+                  src={form.avatar}
+                  alt={form.displayName}
+                  sx={{ width: 64, height: 64, fontSize: 22, bgcolor: 'primary.main' }}
+                >
+                  {getInitials(form.displayName || session.displayName)}
+                </Avatar>
+                <Box>
+                  <Typography variant="h4">{form.displayName}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {form.city}
+                  </Typography>
+                </Box>
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                {form.bio}
+              </Typography>
+            </Stack>
+          </Paper>
 
-        <aside className="side-column">
-          <section className="summary-panel">
-            <p className="eyebrow">Роль</p>
-            <h3>{session.displayName}</h3>
-            <p>{session.role === 'admin' ? 'Доступ к админским функциям включен.' : 'Обычный пользовательский кабинет.'}</p>
-          </section>
-
-          <section className="summary-panel">
-            <p className="eyebrow">История обращений</p>
-            <div className="status-list">
-              {myAppeals.map((appeal) => (
-                <article key={appeal.id} className="status-list__item">
-                  <div>
-                    <h3>{appeal.title}</h3>
-                    <p>{appeal.category}</p>
-                  </div>
-                  <StatusBadge status={appeal.status} />
-                  <span>{formatDate(appeal.createdAt)}</span>
-                </article>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </div>
-    </section>
+          <Paper sx={{ p: 2.5 }}>
+            <Stack spacing={1.5}>
+              <Typography variant="overline" color="text.secondary">
+                История обращений
+              </Typography>
+              {myAppeals.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Пока у вас нет отправленных обращений.
+                </Typography>
+              ) : (
+                <Stack spacing={1.25}>
+                  {myAppeals.map((appeal) => (
+                    <Paper
+                      key={appeal.id}
+                      component={RouterLink}
+                      to={`/appeal/${appeal.id}`}
+                      sx={{
+                        p: 2,
+                        display: 'block',
+                        transition: 'transform 180ms ease',
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                        },
+                      }}
+                    >
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          {appeal.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {appeal.address}
+                        </Typography>
+                        <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                          <StatusBadge status={appeal.status} />
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(appeal.createdAt)}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="body2" color="primary.main" sx={{ fontWeight: 700 }}>
+                          Открыть обращение
+                        </Typography>
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Paper>
+        </Stack>
+      </Box>
+    </Container>
   )
 }

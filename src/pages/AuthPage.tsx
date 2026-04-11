@@ -1,5 +1,19 @@
+import LoginRounded from '@mui/icons-material/LoginRounded'
+import PersonAddRounded from '@mui/icons-material/PersonAddRounded'
+import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded'
+import {
+  Button,
+  Container,
+  MenuItem,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useState, useTransition } from 'react'
-import { Link } from 'react-router-dom'
+import { Link as RouterLink } from 'react-router-dom'
 import { useAppState } from '../state/AppState'
 import type { AccountRole } from '../types'
 
@@ -35,72 +49,85 @@ export function AuthPage() {
     })
   }
 
+  if (isAuthenticated) {
+    return (
+      <Container maxWidth="sm" sx={{ py: { xs: 2, md: 2.5 } }}>
+        <Paper sx={{ px: { xs: 2.25, md: 2.75 }, py: { xs: 2.25, md: 2.75 } }}>
+          <Stack spacing={2}>
+            <Typography variant="overline" color="text.secondary">
+              Активная сессия
+            </Typography>
+            <Typography variant="h2">Сессия активна.</Typography>
+            <Typography variant="body1" color="text.secondary">
+              Можно сразу перейти в нужный раздел без повторного входа и лишнего промежуточного экрана.
+            </Typography>
+            <Paper sx={{ p: 2.5 }}>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary">
+                  Текущая сессия
+                </Typography>
+                <Typography variant="h3">{session.displayName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {session.email || 'Демо-режим без привязки к почте'}
+                </Typography>
+              </Stack>
+            </Paper>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <Button
+                component={RouterLink}
+                to={session.role === 'admin' ? '/admin' : '/profile'}
+                variant="contained"
+              >
+                {session.role === 'admin' ? 'Открыть админку' : 'Открыть профиль'}
+              </Button>
+              <Button variant="outlined" color="secondary" startIcon={<SwapHorizRounded />} onClick={signOut}>
+                Сменить роль
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      </Container>
+    )
+  }
+
   return (
-    <section className="page-shell">
-      <div className="content-shell auth-grid">
-        <div className="auth-copy">
-          <p className="eyebrow">Вход и регистрация</p>
-          <h1 className="auth-copy__title">
-            Один вход, две роли, понятная логика доступа.
-          </h1>
-          <p className="lead auth-copy__lead">
-            Пользователь получает профиль, обращения и историю активности. Администратор
-            видит входящие обращения, уведомления и публикацию новостей.
-          </p>
+    <Container maxWidth="sm" sx={{ py: { xs: 2, md: 2.5 } }}>
+      <Stack spacing={1.6}>
+        <Stack spacing={0.75}>
+          <Typography variant="overline" color="text.secondary">
+            Вход и регистрация
+          </Typography>
+          <Typography variant="h2">Кабинет без лишних экранов.</Typography>
+          <Typography variant="body1" color="text.secondary">
+            Пользователь попадает в профиль и обращения, а администратор — сразу в рабочую админку.
+          </Typography>
+        </Stack>
 
-          <ul className="workflow-list workflow-list--compact">
-            <li>В демонстрации можно переключаться между ролями прямо из формы входа.</li>
-            <li>Регистрация создает обычного пользователя с базовым профилем.</li>
-            <li>Дальше этот слой легко заменить реальной авторизацией и бэкендом.</li>
-          </ul>
-        </div>
-
-        <div className="auth-panel">
-          <div className="auth-tabs" role="tablist" aria-label="Выбор сценария входа">
-            <button
-              className={viewMode === 'login' ? 'auth-tabs__button is-active' : 'auth-tabs__button'}
-              type="button"
-              onClick={() => setViewMode('login')}
+        <Paper
+          sx={{
+            px: { xs: 2.25, md: 2.75 },
+            pb: { xs: 2.25, md: 2.75 },
+            pt: { xs: 1.25, md: 1.5 },
+          }}
+        >
+          <Stack spacing={1.6}>
+            <Tabs
+              value={viewMode}
+              onChange={(_event, value) => setViewMode(value)}
+              variant="fullWidth"
+              sx={{ mb: 0 }}
             >
-              Войти
-            </button>
-            <button
-              className={viewMode === 'register' ? 'auth-tabs__button is-active' : 'auth-tabs__button'}
-              type="button"
-              onClick={() => setViewMode('register')}
-            >
-              Регистрация
-            </button>
-          </div>
+              <Tab icon={<LoginRounded />} iconPosition="start" label="Войти" value="login" />
+              <Tab icon={<PersonAddRounded />} iconPosition="start" label="Регистрация" value="register" />
+            </Tabs>
 
-          {isAuthenticated ? (
-            <section className="summary-panel">
-              <p className="meta-line">Активная сессия</p>
-              <h3>{session.displayName}</h3>
-              <p>{session.email || 'Демо-режим без реального email'}</p>
-              <div className="button-row">
-                <Link className="button button--primary" to="/profile">
-                  Открыть профиль
-                </Link>
-                {session.role === 'admin' ? (
-                  <Link className="button button--secondary" to="/admin">
-                    Перейти в админку
-                  </Link>
-                ) : null}
-                <button className="button button--ghost" type="button" onClick={signOut}>
-                  Сменить роль
-                </button>
-              </div>
-            </section>
-          ) : null}
-
-          {viewMode === 'login' ? (
-            <form className="form-stack" onSubmit={handleSignInSubmit}>
-              <label className="field">
-                <span>Email</span>
-                <input
-                  className="input"
+            {viewMode === 'login' ? (
+              <Stack component="form" spacing={1.5} onSubmit={handleSignInSubmit} sx={{ pt: 0.25 }}>
+                <TextField
+                  label="Email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   value={signInForm.email}
                   onChange={(event) =>
                     setSignInForm((currentForm) => ({
@@ -109,13 +136,11 @@ export function AuthPage() {
                     }))
                   }
                 />
-              </label>
-
-              <label className="field">
-                <span>Пароль</span>
-                <input
-                  className="input"
+                <TextField
+                  label="Пароль"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   value={signInForm.password}
                   onChange={(event) =>
                     setSignInForm((currentForm) => ({
@@ -124,12 +149,9 @@ export function AuthPage() {
                     }))
                   }
                 />
-              </label>
-
-              <label className="field">
-                <span>Роль для демо</span>
-                <select
-                  className="select"
+                <TextField
+                  select
+                  label="Роль для демо"
                   value={signInForm.role}
                   onChange={(event) =>
                     setSignInForm((currentForm) => ({
@@ -138,22 +160,19 @@ export function AuthPage() {
                     }))
                   }
                 >
-                  <option value="user">Обычный пользователь</option>
-                  <option value="admin">Администратор</option>
-                </select>
-              </label>
-
-              <button className="button button--primary" type="submit" disabled={isPending}>
-                {isPending ? 'Открываем кабинет...' : 'Войти'}
-              </button>
-            </form>
-          ) : (
-            <form className="form-stack" onSubmit={handleRegisterSubmit}>
-              <label className="field">
-                <span>Имя</span>
-                <input
-                  className="input"
-                  type="text"
+                  <MenuItem value="user">Обычный пользователь</MenuItem>
+                  <MenuItem value="admin">Администратор</MenuItem>
+                </TextField>
+                <Button type="submit" variant="contained" disabled={isPending}>
+                  {isPending ? 'Открываем кабинет...' : 'Войти'}
+                </Button>
+              </Stack>
+            ) : (
+              <Stack component="form" spacing={1.5} onSubmit={handleRegisterSubmit} sx={{ pt: 0.25 }}>
+                <TextField
+                  label="Имя"
+                  name="displayName"
+                  autoComplete="name"
                   value={registerForm.displayName}
                   onChange={(event) =>
                     setRegisterForm((currentForm) => ({
@@ -162,13 +181,11 @@ export function AuthPage() {
                     }))
                   }
                 />
-              </label>
-
-              <label className="field">
-                <span>Email</span>
-                <input
-                  className="input"
+                <TextField
+                  label="Email"
+                  name="registerEmail"
                   type="email"
+                  autoComplete="email"
                   value={registerForm.email}
                   onChange={(event) =>
                     setRegisterForm((currentForm) => ({
@@ -177,13 +194,11 @@ export function AuthPage() {
                     }))
                   }
                 />
-              </label>
-
-              <label className="field">
-                <span>Пароль</span>
-                <input
-                  className="input"
+                <TextField
+                  label="Пароль"
+                  name="registerPassword"
                   type="password"
+                  autoComplete="new-password"
                   value={registerForm.password}
                   onChange={(event) =>
                     setRegisterForm((currentForm) => ({
@@ -192,15 +207,14 @@ export function AuthPage() {
                     }))
                   }
                 />
-              </label>
-
-              <button className="button button--primary" type="submit" disabled={isPending}>
-                {isPending ? 'Создаем профиль...' : 'Зарегистрироваться'}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </section>
+                <Button type="submit" variant="contained" disabled={isPending}>
+                  {isPending ? 'Создаем профиль...' : 'Создать кабинет'}
+                </Button>
+              </Stack>
+            )}
+          </Stack>
+        </Paper>
+      </Stack>
+    </Container>
   )
 }

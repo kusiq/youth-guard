@@ -1,10 +1,178 @@
-import { useDeferredValue, useState } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  Alert,
+  Avatar,
+  Box,
+  Card,
+  CardContent,
+  CardMedia,
+  Container,
+  LinearProgress,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
+import {
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from 'react'
+import { Link as RouterLink } from 'react-router-dom'
+import { NewsActionBar } from '../components/NewsActionBar'
 import { formatDate } from '../lib/format'
+import { getInitials } from '../lib/person'
+import type { NewsItem } from '../types'
 import { useAppState } from '../state/AppState'
 
+const PAGE_SIZE = 6
+
+interface NewsFeedListProps {
+  items: NewsItem[]
+  onToggleLike: (newsId: string) => void
+}
+
+function NewsFeedList({ items, onToggleLike }: NewsFeedListProps) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [isPending, startTransition] = useTransition()
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const visibleNews = items.slice(0, visibleCount)
+  const hasMore = visibleCount < items.length
+
+  useEffect(() => {
+    const loadMoreNode = loadMoreRef.current
+
+    if (loadMoreNode === null || hasMore === false) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting !== true) {
+          return
+        }
+
+        startTransition(() => {
+          setVisibleCount((currentCount) =>
+            Math.min(currentCount + PAGE_SIZE, items.length),
+          )
+        })
+      },
+      {
+        rootMargin: '320px 0px',
+      },
+    )
+
+    observer.observe(loadMoreNode)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [hasMore, items.length, startTransition])
+
+  return (
+    <Stack spacing={1.5}>
+      {visibleNews.map((item) => (
+        <Card
+          key={item.id}
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            transition: 'transform 220ms ease, box-shadow 220ms ease',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: (theme) => theme.shadows[1],
+            },
+            '&:hover .news-feed-media': {
+              transform: 'scale(1.015)',
+            },
+          }}
+        >
+          <Box component={RouterLink} to={`/news/${item.id}`} sx={{ display: 'block' }}>
+            <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
+                    {getInitials(item.author)}
+                  </Avatar>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      {item.author}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {item.category} · {formatDate(item.createdAt)}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Box>
+                  <Typography variant="h3" sx={{ mb: 1 }}>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {item.summary}
+                  </Typography>
+                </Box>
+
+                {item.image === undefined ? null : (
+                  <CardMedia
+                    className="news-feed-media"
+                    component="img"
+                    image={item.image}
+                    alt={item.title}
+                    sx={{
+                      width: '100%',
+                      aspectRatio: '16 / 10',
+                      borderRadius: 2.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      transition: 'transform 220ms ease',
+                    }}
+                  />
+                )}
+              </Stack>
+            </CardContent>
+          </Box>
+
+          <Box
+            sx={{
+              px: { xs: 2.25, md: 3 },
+              py: 1.25,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <NewsActionBar
+              commentCount={item.comments.length}
+              commentTo={`/news/${item.id}#comments`}
+              isLiked={item.viewerHasLiked}
+              likeCount={item.likes}
+              onLikeClick={() => onToggleLike(item.id)}
+            />
+          </Box>
+        </Card>
+      ))}
+
+      <Box ref={hasMore ? loadMoreRef : undefined}>
+        {hasMore ? (
+          <Stack spacing={1.25} sx={{ py: 1 }}>
+            {isPending ? <LinearProgress /> : null}
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+              {isPending ? 'Подгружаем следующие публикации…' : 'Лента автоматически подтянет следующие посты.'}
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 1, textAlign: 'center' }}>
+            Вы дошли до конца ленты.
+          </Typography>
+        )}
+      </Box>
+    </Stack>
+  )
+}
+
 export function NewsPage() {
-  const { news } = useAppState()
+  const { news, toggleNewsLike } = useAppState()
   const [searchValue, setSearchValue] = useState('')
   const deferredSearch = useDeferredValue(searchValue)
   const normalizedSearch = deferredSearch.trim().toLowerCase()
@@ -20,95 +188,50 @@ export function NewsPage() {
     return haystack.includes(normalizedSearch)
   })
 
-  if (news.length === 0) {
-    return null
-  }
-
   return (
-    <section className="page-shell">
-      <div className="content-shell news-feed-page">
-        <div className="news-feed-page__intro">
-          <p className="eyebrow">Новости</p>
-          <h1 className="news-feed-page__title">Лента штаба</h1>
-          <p className="lead news-feed-page__lead">
-            Список публикаций работает как спокойный feed: сначала короткая выжимка,
-            потом отдельная страница новости с полным текстом и комментариями.
-          </p>
-        </div>
+    <Container maxWidth="md" sx={{ py: { xs: 2, md: 2.5 } }}>
+      <Stack spacing={2.25}>
+        <Stack spacing={0.75} sx={{ maxWidth: '42rem' }}>
+          <Typography variant="overline" color="text.secondary">
+            Новости
+          </Typography>
+          <Typography variant="h2">Лента штаба</Typography>
+          <Typography variant="body1" color="text.secondary">
+            Плотный поток публикаций с комментариями, реакциями и отдельной страницей
+            для каждого поста. Без правых колонок и пустого экрана вокруг контента.
+          </Typography>
+        </Stack>
 
-        <div className="news-feed-page__toolbar">
-          <label className="field field--search">
-            <span>Поиск по новостям</span>
-            <input
-              className="input"
-              type="search"
-              name="news-search"
-              value={searchValue}
-              autoComplete="off"
-              placeholder="Например: благоустройство или волонтерство…"
-              onChange={(event) => setSearchValue(event.target.value)}
-            />
-          </label>
-          <p className="meta-line news-feed-page__count">
-            Найдено {filteredNews.length} публикаций
-          </p>
-        </div>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{ alignItems: { xs: 'stretch', sm: 'flex-end' } }}
+        >
+          <TextField
+            fullWidth
+            label="Поиск по ленте"
+            value={searchValue}
+            placeholder="Тема, автор или категория"
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', pb: { sm: 1 } }}>
+            {filteredNews.length} публикаций
+          </Typography>
+        </Stack>
 
         {filteredNews.length === 0 ? (
-          <div className="summary-panel">
-            <p className="eyebrow">Ничего не найдено</p>
-            <h2>Попробуйте изменить запрос.</h2>
-            <p>Уберите лишние слова или ищите по более короткой формулировке.</p>
-          </div>
+          <Alert severity="info" sx={{ borderRadius: 2.5 }}>
+            По этому запросу ничего не найдено. Попробуйте убрать часть слов или
+            открыть общий поток публикаций.
+          </Alert>
         ) : (
-          <div className="news-feed" aria-label="Список публикаций">
-            {filteredNews.map((item) => {
-              const linkClassName =
-                item.image === undefined
-                  ? 'news-feed__link news-feed__link--text-only'
-                  : 'news-feed__link'
-
-              return (
-                <article key={item.id} className="news-feed__item">
-                  <Link className={linkClassName} to={`/news/${item.id}`}>
-                    <div className="news-feed__copy">
-                      <div className="news-feed__meta">
-                        <p className="meta-line">{item.category}</p>
-                        <span className="news-feed__divider" aria-hidden="true">
-                          •
-                        </span>
-                        <p className="meta-line">{formatDate(item.createdAt)}</p>
-                      </div>
-
-                      <h2 className="news-feed__headline">{item.title}</h2>
-                      <p className="news-feed__summary">{item.summary}</p>
-
-                      <div className="news-feed__footer">
-                        <span className="meta-line">{item.author}</span>
-                        <span className="news-feed__divider" aria-hidden="true">
-                          •
-                        </span>
-                        <span className="meta-line">
-                          {item.comments.length} комментариев
-                        </span>
-                      </div>
-                    </div>
-
-                    {item.image === undefined ? null : (
-                      <img
-                        className="news-feed__image"
-                        src={item.image}
-                        alt={item.title}
-                        loading="lazy"
-                      />
-                    )}
-                  </Link>
-                </article>
-              )
-            })}
-          </div>
+          <NewsFeedList
+            key={`${normalizedSearch}:${filteredNews.length}`}
+            items={filteredNews}
+            onToggleLike={toggleNewsLike}
+          />
         )}
-      </div>
-    </section>
+      </Stack>
+    </Container>
   )
 }

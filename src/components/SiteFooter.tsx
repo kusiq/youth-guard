@@ -1,33 +1,54 @@
+import { Box, Container, Stack, Typography } from '@mui/material'
 import { Link } from 'react-router-dom'
+import { useAppState } from '../state/AppState'
 
 export function SiteFooter() {
+  const { isAuthenticated, session } = useAppState()
+  const accountLink = session.role === 'admin' ? '/admin' : '/profile'
+  const accountLabel =
+    session.role === 'admin'
+      ? 'Админка'
+      : isAuthenticated
+        ? 'Профиль'
+        : 'Войти'
+
   return (
-    <footer className="site-footer">
-      <div className="content-shell site-footer__inner">
-        <div>
-          <p className="site-footer__brand">Молодая Гвардия Костромы</p>
-          <p className="site-footer__text">
-            Прототип городского сайта с новостями, обращениями жителей и личным кабинетом.
-          </p>
-        </div>
+    <Box
+      component="footer"
+      sx={{
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        py: 2.25,
+        mt: 2.5,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' } }}
+        >
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+              Молодая Гвардия Костромы
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Городская лента, обращения жителей и рабочий кабинет без лишнего chrome.
+            </Typography>
+          </Box>
 
-        <div className="site-footer__nav" aria-label="Нижняя навигация">
-          <Link to="/news">Новости</Link>
-          <Link to="/appeal/new">Обращение</Link>
-          <Link to="/auth">Вход</Link>
-        </div>
-
-        <p className="site-footer__credit">
-          Фото hero:{' '}
-          <a
-            href="https://commons.wikimedia.org/wiki/File:Kostroma_-_Central_park_-_2024-05_-_p2.jpg"
-            target="_blank"
-            rel="noreferrer"
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={{ xs: 0.5, sm: 2 }}
+            aria-label="Нижняя навигация"
           >
-            Александр Сигачёв / Wikimedia Commons
-          </a>
-        </p>
-      </div>
-    </footer>
+            <Link to="/news">Новости</Link>
+            <Link to="/appeal/new">Обращение</Link>
+            <Link to={isAuthenticated ? accountLink : '/auth'}>{accountLabel}</Link>
+          </Stack>
+        </Stack>
+      </Container>
+    </Box>
   )
 }

@@ -43,6 +43,26 @@ export const interestOptions = [
   'Патриотические акции',
   'Экология',
   'Спортивные события',
+  'Городские инициативы',
+  'Помощь ветеранам',
+  'Фото и видео',
+  'SMM',
+  'Школьные проекты',
+  'Дебаты и дискуссии',
+  'Благоустройство дворов',
+  'Экопросвещение',
+  'Дизайн',
+  'Наставничество',
+  'Благотворительность',
+  'Молодежные форумы',
+  'Работа с обращениями',
+  'Культурные проекты',
+  'Организация мероприятий',
+  'Спортивное волонтерство',
+  'Урбанистика',
+  'Работа с семьями',
+  'Исторические проекты',
+  'Медиаграмотность',
 ]
 
 export const initialSession: Session = {
@@ -66,6 +86,7 @@ function buildComment(
   role: AccountRole,
   text: string,
   createdAt: string,
+  avatar?: string,
 ) {
   return {
     id,
@@ -73,6 +94,7 @@ function buildComment(
     role,
     text,
     createdAt,
+    avatar,
   }
 }
 
@@ -91,6 +113,8 @@ export const initialNews: NewsItem[] = [
     createdAt: '2026-04-06T09:00:00.000Z',
     author: 'Штаб Молодой Гвардии',
     image: kostromaHero,
+    likes: 26,
+    viewerHasLiked: false,
     comments: [
       buildComment(
         'comment-park-1',
@@ -120,6 +144,8 @@ export const initialNews: NewsItem[] = [
     category: 'Городская среда',
     createdAt: '2026-04-02T14:00:00.000Z',
     author: 'Цифровая команда',
+    likes: 14,
+    viewerHasLiked: false,
     comments: [
       buildComment(
         'comment-hotline-1',
@@ -142,6 +168,8 @@ export const initialNews: NewsItem[] = [
     category: 'Волонтерство',
     createdAt: '2026-03-28T10:15:00.000Z',
     author: 'Медиацентр',
+    likes: 9,
+    viewerHasLiked: false,
     comments: [],
   },
 ]

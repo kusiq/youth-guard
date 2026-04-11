@@ -1,10 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import {
+  useCallback,
   createContext,
   type PropsWithChildren,
   useContext,
   useEffect,
-  useState,
+  useMemo,
 } from 'react'
 import {
   defaultProfile,
@@ -40,6 +41,7 @@ interface AppStateValue {
   register: (payload: RegisterPayload) => void
   signOut: () => void
   publishNews: (draft: NewsDraft) => void
+  toggleNewsLike: (newsId: string) => void
   addComment: (newsId: string, text: string) => void
   createAppeal: (draft: AppealDraft) => void
   updateProfile: (draft: UserProfile) => void
@@ -70,6 +72,25 @@ function buildDisplayName(email: string) {
     .join(' ')
 }
 
+function normalizeNewsItems(items: NewsItem[]) {
+  return items.map((item) => ({
+    ...item,
+    likes: item.likes ?? 0,
+    viewerHasLiked: item.viewerHasLiked ?? false,
+    comments: (item.comments ?? []).map((comment) => ({
+      ...comment,
+      avatar: comment.avatar ?? undefined,
+    })),
+  }))
+}
+
+function normalizeAppeals(items: Appeal[]) {
+  return items.map((item) => ({
+    ...item,
+    viewedByAdmin: item.viewedByAdmin ?? false,
+  }))
+}
+
 export function AppStateProvider({ children }: PropsWithChildren) {
   const [theme, setTheme] = useLocalStorageState<ThemeMode>(
     'youth-guard-theme',
@@ -85,27 +106,54 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   )
   const [news, setNews] = useLocalStorageState<NewsItem[]>(
     'youth-guard-news',
-    initialNews,
+    normalizeNewsItems(initialNews),
   )
-  const [appeals, setAppeals] = useState<Appeal[]>(initialAppeals)
+  const [appeals, setAppeals] = useLocalStorageState<Appeal[]>(
+    'youth-guard-appeals',
+    normalizeAppeals(initialAppeals),
+  )
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
   }, [theme])
 
+  useEffect(() => {
+    const normalizedNews = normalizeNewsItems(news)
+    const hasLegacyShape = normalizedNews.some(
+      (item, index) =>
+        item.likes !== news[index]?.likes ||
+        item.viewerHasLiked !== news[index]?.viewerHasLiked,
+    )
+
+    if (hasLegacyShape) {
+      setNews(normalizedNews)
+    }
+  }, [news, setNews])
+
+  useEffect(() => {
+    const normalizedAppeals = normalizeAppeals(appeals)
+    const hasLegacyShape = normalizedAppeals.some(
+      (item, index) => item.viewedByAdmin !== appeals[index]?.viewedByAdmin,
+    )
+
+    if (hasLegacyShape) {
+      setAppeals(normalizedAppeals)
+    }
+  }, [appeals, setAppeals])
+
   const unreadAppealCount = appeals.filter(
     (appeal) => appeal.viewedByAdmin === false,
   ).length
   const isAuthenticated = session.role === 'guest' ? false : true
 
-  function toggleTheme() {
+  const toggleTheme = useCallback(() => {
     setTheme((currentTheme) =>
       currentTheme === 'light' ? 'dark' : 'light',
     )
-  }
+  }, [setTheme])
 
-  function signIn(payload: SignInPayload) {
+  const signIn = useCallback((payload: SignInPayload) => {
     const nextDisplayName =
       payload.role === 'admin'
         ? 'Координатор штаба'
@@ -127,9 +175,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         email: payload.email.trim(),
       }))
     }
-  }
+  }, [profile.avatar, profile.displayName, session.avatar, setProfile, setSession])
 
-  function register(payload: RegisterPayload) {
+  const register = useCallback((payload: RegisterPayload) => {
     const nextProfile = {
       ...profile,
       displayName: payload.displayName.trim(),
@@ -143,13 +191,13 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       email: nextProfile.email,
       avatar: nextProfile.avatar,
     })
-  }
+  }, [profile, setProfile, setSession])
 
-  function signOut() {
+  const signOut = useCallback(() => {
     setSession(initialSession)
-  }
+  }, [setSession])
 
-  function publishNews(draft: NewsDraft) {
+  const publishNews = useCallback((draft: NewsDraft) => {
     const nextNewsItem: NewsItem = {
       id: createId('news'),
       title: draft.title.trim(),
@@ -159,13 +207,31 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       createdAt: new Date().toISOString(),
       author: session.displayName || 'Штаб Молодой Гвардии',
       image: draft.image,
+      likes: 0,
+      viewerHasLiked: false,
       comments: [],
     }
 
     setNews((currentNews) => [nextNewsItem, ...currentNews])
-  }
+  }, [session.displayName, setNews])
 
-  function addComment(newsId: string, text: string) {
+  const toggleNewsLike = useCallback((newsId: string) => {
+    setNews((currentNews) =>
+      currentNews.map((item) => {
+        if (item.id !== newsId) {
+          return item
+        }
+
+        return {
+          ...item,
+          likes: item.viewerHasLiked ? Math.max(0, item.likes - 1) : item.likes + 1,
+          viewerHasLiked: item.viewerHasLiked ? false : true,
+        }
+      }),
+    )
+  }, [setNews])
+
+  const addComment = useCallback((newsId: string, text: string) => {
     const nextRole: NewsComment['role'] = session.role === 'admin' ? 'admin' : 'user'
     const comment: NewsComment = {
       id: createId('comment'),
@@ -173,6 +239,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       role: nextRole,
       text: text.trim(),
       createdAt: new Date().toISOString(),
+      avatar: session.avatar,
     }
 
     setNews((currentNews) =>
@@ -185,9 +252,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
           : item,
       ),
     )
-  }
+  }, [session.avatar, session.displayName, session.role, setNews])
 
-  function createAppeal(draft: AppealDraft) {
+  const createAppeal = useCallback((draft: AppealDraft) => {
     const nextAppeal: Appeal = {
       id: createId('appeal'),
       title: draft.title.trim(),
@@ -202,9 +269,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     }
 
     setAppeals((currentAppeals) => [nextAppeal, ...currentAppeals])
-  }
+  }, [session.displayName, setAppeals])
 
-  function updateProfile(draft: UserProfile) {
+  const updateProfile = useCallback((draft: UserProfile) => {
     setProfile(draft)
     setSession((currentSession) => ({
       ...currentSession,
@@ -212,52 +279,81 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       email: draft.email,
       avatar: draft.avatar,
     }))
-  }
+  }, [setProfile, setSession])
 
-  function markAppealsSeen() {
+  const markAppealsSeen = useCallback(() => {
     setAppeals((currentAppeals) =>
-      currentAppeals.map((appeal) => ({
-        ...appeal,
-        viewedByAdmin: true,
-      })),
+      currentAppeals.some((appeal) => appeal.viewedByAdmin === false)
+        ? currentAppeals.map((appeal) => ({
+            ...appeal,
+            viewedByAdmin: true,
+          }))
+        : currentAppeals,
     )
-  }
+  }, [setAppeals])
 
-  function updateAppealStatus(appealId: string, nextStatus: AppealStatus) {
+  const updateAppealStatus = useCallback((appealId: string, nextStatus: AppealStatus) => {
     setAppeals((currentAppeals) =>
       currentAppeals.map((appeal) =>
         appeal.id === appealId
-          ? {
-              ...appeal,
-              status: nextStatus,
-              viewedByAdmin: true,
-            }
+          ? appeal.status === nextStatus && appeal.viewedByAdmin
+            ? appeal
+            : {
+                ...appeal,
+                status: nextStatus,
+                viewedByAdmin: true,
+              }
           : appeal,
       ),
     )
-  }
+  }, [setAppeals])
+
+  const value = useMemo(
+    () => ({
+      theme,
+      session,
+      profile,
+      news,
+      appeals,
+      unreadAppealCount,
+      isAuthenticated,
+      toggleTheme,
+      signIn,
+      register,
+      signOut,
+      publishNews,
+      toggleNewsLike,
+      addComment,
+      createAppeal,
+      updateProfile,
+      markAppealsSeen,
+      updateAppealStatus,
+    }),
+    [
+      addComment,
+      appeals,
+      createAppeal,
+      isAuthenticated,
+      markAppealsSeen,
+      news,
+      profile,
+      publishNews,
+      register,
+      session,
+      signIn,
+      signOut,
+      theme,
+      toggleNewsLike,
+      toggleTheme,
+      unreadAppealCount,
+      updateAppealStatus,
+      updateProfile,
+    ],
+  )
 
   return (
     <AppStateContext.Provider
-      value={{
-        theme,
-        session,
-        profile,
-        news,
-        appeals,
-        unreadAppealCount,
-        isAuthenticated,
-        toggleTheme,
-        signIn,
-        register,
-        signOut,
-        publishNews,
-        addComment,
-        createAppeal,
-        updateProfile,
-        markAppealsSeen,
-        updateAppealStatus,
-      }}
+      value={value}
     >
       {children}
     </AppStateContext.Provider>

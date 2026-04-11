@@ -1,9 +1,18 @@
+import { CircularProgress, Container, Stack, Typography } from '@mui/material'
+
 export function RouteLoading() {
   return (
-    <div className="route-loading content-shell" role="status" aria-live="polite">
-      <p className="eyebrow">Загрузка</p>
-      <h2>Открываем раздел</h2>
-      <p>Подготавливаем интерфейс и данные.</p>
-    </div>
+    <Container maxWidth="sm" sx={{ py: { xs: 6, md: 9 } }}>
+      <Stack spacing={2} role="status" aria-live="polite" sx={{ alignItems: 'flex-start' }}>
+        <CircularProgress size={28} />
+        <Typography variant="overline" color="text.secondary">
+          Загрузка
+        </Typography>
+        <Typography variant="h3">Открываем раздел</Typography>
+        <Typography variant="body1" color="text.secondary">
+          Подготавливаем интерфейс и данные.
+        </Typography>
+      </Stack>
+    </Container>
   )
 }

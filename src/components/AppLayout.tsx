@@ -1,18 +1,25 @@
+import { Box } from '@mui/material'
 import { Outlet } from 'react-router-dom'
 import { AppHeader } from './AppHeader'
 import { SiteFooter } from './SiteFooter'
 
 export function AppLayout() {
   return (
-    <div className="site-shell">
+    <Box sx={{ minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
       <a className="skip-link" href="#main-content">
         Перейти к содержанию
       </a>
       <AppHeader />
-      <main className="site-main" id="main-content">
+      <Box
+        component="main"
+        id="main-content"
+        sx={{
+          display: 'block',
+        }}
+      >
         <Outlet />
-      </main>
+      </Box>
       <SiteFooter />
-    </div>
+    </Box>
   )
 }

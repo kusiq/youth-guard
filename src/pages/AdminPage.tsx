@@ -1,9 +1,26 @@
+import AddPhotoAlternateRounded from '@mui/icons-material/AddPhotoAlternateRounded'
+import MarkunreadMailboxRounded from '@mui/icons-material/MarkunreadMailboxRounded'
+import NotificationsActiveRounded from '@mui/icons-material/NotificationsActiveRounded'
+import NewspaperRounded from '@mui/icons-material/NewspaperRounded'
+import {
+  Avatar,
+  Box,
+  Button,
+  Container,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useDeferredValue, useEffect, useRef, useState, useTransition } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import { AccessNotice } from '../components/AccessNotice'
 import { StatusBadge } from '../components/StatusBadge'
-import { appealStatuses, newsCategories } from '../data/mockData'
+import { newsCategories } from '../data/mockData'
 import { formatDate } from '../lib/format'
 import { readFileAsDataUrl } from '../lib/file'
+import { getInitials } from '../lib/person'
 import { useAppState } from '../state/AppState'
 
 export function AdminPage() {
@@ -14,33 +31,33 @@ export function AdminPage() {
     publishNews,
     session,
     unreadAppealCount,
-    updateAppealStatus,
   } = useAppState()
   const [isPending, startTransition] = useTransition()
-  const [statusFilter, setStatusFilter] = useState('Все')
   const [searchValue, setSearchValue] = useState('')
   const [newsForm, setNewsForm] = useState({
     title: 'Новая публикация штаба',
-    summary: 'Короткая выжимка для ленты, чтобы новость читалась за несколько секунд.',
+    summary: 'Короткий текст для ленты: о чем пост и что в нем самое важное.',
     category: newsCategories[0],
-    body: 'Первый абзац новости.\n\nВторой абзац с деталями, фактами и следующими шагами.',
+    body: 'Первый абзац публикации.\n\nВторой абзац с фактами, контекстом или следующим шагом.',
     image: '',
   })
   const deferredSearch = useDeferredValue(searchValue)
   const hasMarkedInbox = useRef(false)
 
   useEffect(() => {
-    if (hasMarkedInbox.current === false) {
-      markAppealsSeen()
-      hasMarkedInbox.current = true
+    if (hasMarkedInbox.current) {
+      return
     }
+
+    markAppealsSeen()
+    hasMarkedInbox.current = true
   }, [markAppealsSeen])
 
-  if (session.role === 'admin' ? false : true) {
+  if (session.role !== 'admin') {
     return (
       <AccessNotice
-        title="Админ-панель доступна только координатору."
-        description="Обычный пользователь может читать новости, оставлять обращения и вести профиль, но не управлять входящими задачами."
+        title="Админка доступна только координатору."
+        description="Обычный пользователь может читать новости и оставлять обращения, но не управляет входящими задачами."
         actionLabel="Войти как администратор"
         to="/auth"
       />
@@ -49,26 +66,16 @@ export function AdminPage() {
 
   const normalizedSearch = deferredSearch.trim().toLowerCase()
   const filteredAppeals = appeals.filter((appeal) => {
-    const matchesStatus = statusFilter === 'Все' ? true : appeal.status === statusFilter
-
-    if (matchesStatus === false) {
-      return false
-    }
-
     if (normalizedSearch === '') {
       return true
     }
 
-    const haystack = [appeal.title, appeal.address, appeal.authorName]
+    const haystack = [appeal.title, appeal.address, appeal.authorName, appeal.text]
       .join(' ')
       .toLowerCase()
 
     return haystack.includes(normalizedSearch)
   })
-
-  const activeAppealCount = appeals.filter(
-    (appeal) => (appeal.status === 'Закрыто' ? false : true),
-  ).length
 
   async function handleNewsImageChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -77,7 +84,7 @@ export function AdminPage() {
       return
     }
 
-    const image = await readFileAsDataUrl(file)
+    const image = await readFileAsDataUrl(file, { maxDimension: 1280, quality: 0.82 })
     setNewsForm((currentForm) => ({
       ...currentForm,
       image,
@@ -110,187 +117,213 @@ export function AdminPage() {
   }
 
   return (
-    <section className="page-shell page-shell--admin">
-      <div className="content-shell admin-grid">
-        <div>
-          <div className="section-head section-head--compact">
-            <p className="eyebrow">Админка</p>
-            <h1>Входящие обращения, статусы и публикация новостей.</h1>
-          </div>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 2.5 } }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.2fr) minmax(340px, 0.8fr)' },
+        }}
+      >
+        <Stack spacing={2.5}>
+          <Box>
+            <Typography variant="overline" color="text.secondary">
+              Админка
+            </Typography>
+            <Typography variant="h2" sx={{ mt: 0.75 }}>
+              Входящие обращения
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+              Открывайте обращения как отдельные карточки, смотрите фото и меняйте статус без перегруженного списка.
+            </Typography>
+          </Box>
 
-          <div className="stats-strip">
-            <div>
-              <strong>{activeAppealCount}</strong>
-              <span>обращений в работе</span>
-            </div>
-            <div>
-              <strong>{unreadAppealCount}</strong>
-              <span>новых уведомлений</span>
-            </div>
-            <div>
-              <strong>{news.length}</strong>
-              <span>всего публикаций</span>
-            </div>
-          </div>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <Paper sx={{ p: 2, minWidth: 0, flex: 1 }}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                <MarkunreadMailboxRounded color="primary" />
+                <Box>
+                  <Typography variant="h4">{filteredAppeals.length}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    обращений в списке
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+            <Paper sx={{ p: 2, minWidth: 0, flex: 1 }}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                <NotificationsActiveRounded color="primary" />
+                <Box>
+                  <Typography variant="h4">{unreadAppealCount}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    новых до просмотра
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+            <Paper sx={{ p: 2, minWidth: 0, flex: 1 }}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                <NewspaperRounded color="primary" />
+                <Box>
+                  <Typography variant="h4">{news.length}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    публикаций в ленте
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Stack>
 
-          <div className="toolbar-row">
-            <label className="field field--search">
-              <span>Поиск по обращениям</span>
-              <input
-                className="input"
-                type="search"
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-              />
-            </label>
+          <TextField
+            label="Поиск по обращениям"
+            value={searchValue}
+            placeholder="Двор, стадион, Советская"
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
 
-            <label className="field">
-              <span>Статус</span>
-              <select
-                className="select"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
+          <Stack spacing={1.5}>
+            {filteredAppeals.map((appeal) => (
+              <Paper
+                key={appeal.id}
+                component={RouterLink}
+                to={`/admin/appeals/${appeal.id}`}
+                sx={{
+                  p: 2.5,
+                  display: 'block',
+                  transition: 'transform 180ms ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                  },
+                }}
               >
-                <option value="Все">Все</option>
-                {appealStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                <Stack spacing={1.25}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ justifyContent: 'space-between' }}>
+                    <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
+                        {getInitials(appeal.authorName)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          {appeal.authorName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {appeal.category} · {formatDate(appeal.createdAt)}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                      <StatusBadge status={appeal.status} />
+                      <Typography variant="caption" color="text.secondary">
+                        {appeal.image === undefined ? 'Без фото' : 'Есть фото'}
+                      </Typography>
+                    </Stack>
+                  </Stack>
 
-          <section className="summary-panel summary-panel--roomy">
-            <div className="section-head section-head--compact">
-              <p className="eyebrow">Входящие обращения</p>
-              <h3>{filteredAppeals.length} элементов</h3>
-            </div>
+                  <Typography variant="h4">{appeal.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {appeal.address}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {appeal.text}
+                  </Typography>
+                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 700 }}>
+                    Открыть обращение
+                  </Typography>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+        </Stack>
 
-            <div className="status-list status-list--wide">
-              {filteredAppeals.map((appeal) => (
-                <article key={appeal.id} className="status-list__item status-list__item--admin">
-                  <div>
-                    <p className="meta-line">{appeal.authorName}</p>
-                    <h3>{appeal.title}</h3>
-                    <p>{appeal.address}</p>
-                    <p>{appeal.text}</p>
-                  </div>
+        <Paper sx={{ p: { xs: 2.5, md: 3 }, alignSelf: 'start' }}>
+          <Stack spacing={2} component="form" onSubmit={handleNewsSubmit}>
+            <Box>
+              <Typography variant="overline" color="text.secondary">
+                Новый пост
+              </Typography>
+              <Typography variant="h3" sx={{ mt: 0.75 }}>
+                Опубликовать новость
+              </Typography>
+            </Box>
 
-                  <div className="status-list__controls">
-                    <StatusBadge status={appeal.status} />
-                    <select
-                      className="select"
-                      value={appeal.status}
-                      onChange={(event) =>
-                        updateAppealStatus(appeal.id, event.target.value as typeof appeal.status)
-                      }
-                    >
-                      {appealStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                    <span>{formatDate(appeal.createdAt)}</span>
-                  </div>
-                </article>
+            <TextField
+              label="Заголовок"
+              value={newsForm.title}
+              onChange={(event) =>
+                setNewsForm((currentForm) => ({
+                  ...currentForm,
+                  title: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              label="Короткая выжимка"
+              multiline
+              minRows={3}
+              value={newsForm.summary}
+              onChange={(event) =>
+                setNewsForm((currentForm) => ({
+                  ...currentForm,
+                  summary: event.target.value,
+                }))
+              }
+            />
+            <TextField
+              select
+              label="Категория"
+              value={newsForm.category}
+              onChange={(event) =>
+                setNewsForm((currentForm) => ({
+                  ...currentForm,
+                  category: event.target.value,
+                }))
+              }
+            >
+              {newsCategories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
               ))}
-            </div>
-          </section>
-        </div>
+            </TextField>
+            <TextField
+              label="Текст публикации"
+              multiline
+              minRows={6}
+              value={newsForm.body}
+              onChange={(event) =>
+                setNewsForm((currentForm) => ({
+                  ...currentForm,
+                  body: event.target.value,
+                }))
+              }
+            />
 
-        <aside className="side-column">
-          <section className="summary-panel summary-panel--roomy">
-            <div className="section-head section-head--compact">
-              <p className="eyebrow">Новая публикация</p>
-              <h3>Добавить новость</h3>
-            </div>
-
-            <form className="form-stack" onSubmit={handleNewsSubmit}>
-              <label className="field">
-                <span>Заголовок</span>
-                <input
-                  className="input"
-                  type="text"
-                  value={newsForm.title}
-                  onChange={(event) =>
-                    setNewsForm((currentForm) => ({
-                      ...currentForm,
-                      title: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>Короткое описание</span>
-                <textarea
-                  className="textarea"
-                  rows={3}
-                  value={newsForm.summary}
-                  onChange={(event) =>
-                    setNewsForm((currentForm) => ({
-                      ...currentForm,
-                      summary: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>Раздел</span>
-                <select
-                  className="select"
-                  value={newsForm.category}
-                  onChange={(event) =>
-                    setNewsForm((currentForm) => ({
-                      ...currentForm,
-                      category: event.target.value,
-                    }))
-                  }
-                >
-                  {newsCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Полный текст</span>
-                <textarea
-                  className="textarea"
-                  rows={6}
-                  value={newsForm.body}
-                  onChange={(event) =>
-                    setNewsForm((currentForm) => ({
-                      ...currentForm,
-                      body: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>Фото</span>
-                <input className="input input--file" type="file" accept="image/*" onChange={handleNewsImageChange} />
-              </label>
-
+            <Stack spacing={1}>
+              <Button component="label" variant="outlined" color="secondary" startIcon={<AddPhotoAlternateRounded />} sx={{ alignSelf: 'flex-start' }}>
+                Добавить фото
+                <input hidden type="file" accept="image/*" onChange={handleNewsImageChange} />
+              </Button>
               {newsForm.image === '' ? null : (
-                <div className="image-preview image-preview--compact">
-                  <img src={newsForm.image} alt="Предпросмотр новости" />
-                </div>
+                <Box
+                  component="img"
+                  src={newsForm.image}
+                  alt="Предпросмотр публикации"
+                  sx={{
+                    width: '100%',
+                    borderRadius: 2.25,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                />
               )}
+            </Stack>
 
-              <button className="button button--primary" type="submit" disabled={isPending}>
-                {isPending ? 'Публикуем...' : 'Опубликовать новость'}
-              </button>
-            </form>
-          </section>
-        </aside>
-      </div>
-    </section>
+            <Button type="submit" variant="contained" disabled={isPending}>
+              {isPending ? 'Публикуем...' : 'Опубликовать'}
+            </Button>
+          </Stack>
+        </Paper>
+      </Box>
+    </Container>
   )
 }

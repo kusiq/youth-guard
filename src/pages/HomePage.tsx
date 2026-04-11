@@ -1,171 +1,162 @@
-import { Link } from 'react-router-dom'
-import kostromaHero from '../assets/kostroma-hero.jpg'
+import ArrowOutwardRounded from '@mui/icons-material/ArrowOutwardRounded'
+import { Avatar, Box, Button, Card, CardContent, CardMedia, Container, Stack, Typography } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
+import { NewsActionBar } from '../components/NewsActionBar'
 import { formatDate } from '../lib/format'
+import { getInitials } from '../lib/person'
 import { useAppState } from '../state/AppState'
 
 export function HomePage() {
-  const { appeals, news, session } = useAppState()
-  const featuredNews = news[0]
-  const recentNews = news.slice(0, 3)
-  const openAppealsCount = appeals.filter(
-    (appeal) => (appeal.status === 'Закрыто' ? false : true),
-  ).length
-  const profileLink = session.role === 'guest' ? '/auth' : '/profile'
-  const profileLabel =
-    session.role === 'guest' ? 'Войти в кабинет' : 'Открыть профиль'
-
-  if (featuredNews === undefined) {
-    return null
-  }
+  const { news, session, toggleNewsLike } = useAppState()
+  const recentNews = news.slice(0, 5)
+  const dashboardLink =
+    session.role === 'admin'
+      ? '/admin'
+      : session.role === 'guest'
+        ? '/auth'
+        : '/profile'
+  const dashboardLabel =
+    session.role === 'admin'
+      ? 'Открыть админку'
+      : session.role === 'guest'
+        ? 'Войти в кабинет'
+        : 'Открыть профиль'
 
   return (
-    <>
-      <section className="home-hero">
-        <img
-          className="home-hero__media"
-          src={kostromaHero}
-          alt="Центральный парк Костромы"
-        />
-        <div className="home-hero__shade" />
-        <div className="content-shell home-hero__content">
-          <p className="eyebrow">Молодая Гвардия Костромы</p>
-          <h1>Новости, обращения и участие в жизни города в одном спокойном интерфейсе.</h1>
-          <p className="lead">
-            Следите за инициативами штаба, отправляйте обращения с фото и адресом,
-            сохраняйте историю участия в личном кабинете.
-          </p>
+    <Container maxWidth="md" sx={{ py: { xs: 2, md: 2.5 } }}>
+      <Stack spacing={{ xs: 2.25, md: 2.75 }}>
+        <Stack spacing={1.25} sx={{ maxWidth: '46rem' }}>
+          <Typography variant="overline" color="text.secondary">
+            Лента штаба
+          </Typography>
+          <Typography variant="h1">
+            Новости, обсуждение и обращения в одном плотном интерфейсе.
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Открывайте публикации, переходите к комментариям и держите под рукой
+            кабинет без пустых декоративных блоков и повторяющегося hero-фото.
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+            <Button component={RouterLink} to="/news" variant="contained" endIcon={<ArrowOutwardRounded />}>
+              Открыть ленту
+            </Button>
+            <Button component={RouterLink} to="/appeal/new" variant="outlined" color="secondary">
+              Оставить обращение
+            </Button>
+            <Button component={RouterLink} to={dashboardLink} variant="text" color="secondary">
+              {dashboardLabel}
+            </Button>
+          </Stack>
+        </Stack>
 
-          <div className="button-row button-row--hero">
-            <Link className="button button--primary" to="/appeal/new">
-              Создать обращение
-            </Link>
-            <Link className="button button--secondary" to="/news">
-              Читать новости
-            </Link>
-          </div>
+        <Stack spacing={1.25}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}
+          >
+            <Box>
+              <Typography variant="h2">Последние публикации</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '40rem', mt: 0.5 }}>
+                Главная показывает только живой поток публикаций и быстрые входы,
+                без пустой правой колонки и вторичного служебного контента.
+              </Typography>
+            </Box>
+            <Button component={RouterLink} to="/news" variant="text" color="secondary" endIcon={<ArrowOutwardRounded />}>
+              Вся лента
+            </Button>
+          </Stack>
 
-          <ul className="hero-facts" aria-label="Ключевые возможности">
-            <li>
-              <strong>{news.length}</strong>
-              <span>актуальных публикаций</span>
-            </li>
-            <li>
-              <strong>{openAppealsCount}</strong>
-              <span>обращений в работе</span>
-            </li>
-            <li>
-              <strong>2 роли</strong>
-              <span>пользователь и администратор</span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="content-shell">
-          <div className="section-head">
-            <p className="eyebrow">Ключевые сценарии</p>
-            <h2>Каждый раздел отвечает только за одно действие.</h2>
-          </div>
-
-          <div className="feature-rail">
-            <article>
-              <h3>Новости штаба</h3>
-              <p>
-                Лента с фотографиями, комментариями и понятной датой публикации без
-                лишнего визуального шума.
-              </p>
-            </article>
-            <article>
-              <h3>Обращения жителей</h3>
-              <p>
-                Одна форма с адресом, фото и описанием проблемы. Админ получает ее в
-                личном кабинете с уведомлением.
-              </p>
-            </article>
-            <article>
-              <h3>Личный кабинет</h3>
-              <p>
-                Профиль участника, история активности, редактирование информации и
-                прозрачные статусы обращений.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section className="section-block section-block--contrast">
-        <div className="content-shell editorial-grid">
-          <div>
-            <div className="section-head section-head--compact">
-              <p className="eyebrow">Главная новость</p>
-              <h2>{featuredNews.title}</h2>
-            </div>
-            <p className="detail-copy">{featuredNews.summary}</p>
-            <p className="meta-line">
-              {formatDate(featuredNews.createdAt)} · {featuredNews.author}
-            </p>
-            <div className="button-row">
-              <Link className="button button--secondary" to={`/news/${featuredNews.id}`}>
-                Открыть публикацию
-              </Link>
-              <Link className="button button--ghost" to="/news">
-                Открыть полную ленту
-              </Link>
-            </div>
-          </div>
-
-          <div className="news-stack" aria-label="Последние публикации">
+          <Stack spacing={1.25}>
             {recentNews.map((item) => (
-              <Link
+              <Card
                 key={item.id}
-                className="news-stack__item news-stack__item--link"
-                to={`/news/${item.id}`}
+                sx={{
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  transition: 'transform 220ms ease, box-shadow 220ms ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: (theme) => theme.shadows[1],
+                  },
+                  '&:hover .news-home-media': {
+                    transform: 'scale(1.02)',
+                  },
+                }}
               >
-                <div>
-                  <p className="meta-line">{item.category}</p>
-                  <h3>{item.title}</h3>
-                </div>
-                <p>{item.summary}</p>
-                <span>{formatDate(item.createdAt)}</span>
-              </Link>
+                <Box component={RouterLink} to={`/news/${item.id}`} sx={{ display: 'block' }}>
+                  <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
+                    <Stack spacing={2}>
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 800 }}>
+                          {getInitials(item.author)}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                            {item.author}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.category} · {formatDate(item.createdAt)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+
+                      <Stack
+                        direction={{ xs: 'column', md: item.image === undefined ? 'column' : 'row' }}
+                        spacing={2}
+                        sx={{ alignItems: 'stretch' }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="h3" sx={{ mb: 1 }}>
+                            {item.title}
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {item.summary}
+                          </Typography>
+                        </Box>
+
+                        {item.image === undefined ? null : (
+                          <CardMedia
+                            className="news-home-media"
+                            component="img"
+                            image={item.image}
+                            alt={item.title}
+                            sx={{
+                              width: { xs: '100%', md: 240 },
+                              height: { xs: 220, md: 180 },
+                              borderRadius: 2.5,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              transition: 'transform 220ms ease',
+                            }}
+                          />
+                        )}
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Box>
+
+                <Box
+                  sx={{
+                    px: { xs: 2.25, md: 3 },
+                    py: 1.25,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <NewsActionBar
+                    commentCount={item.comments.length}
+                    commentTo={`/news/${item.id}#comments`}
+                    isLiked={item.viewerHasLiked}
+                    likeCount={item.likes}
+                    onLikeClick={() => toggleNewsLike(item.id)}
+                  />
+                </Box>
+              </Card>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="content-shell workflow-grid">
-          <div>
-            <div className="section-head section-head--compact">
-              <p className="eyebrow">Как работает обращение</p>
-              <h2>Без звонков и потери деталей.</h2>
-            </div>
-            <ol className="workflow-list">
-              <li>Пользователь описывает проблему и прикладывает фото.</li>
-              <li>Администратор видит уведомление и принимает обращение в работу.</li>
-              <li>В профиле сохраняется статус, чтобы человек видел движение заявки.</li>
-            </ol>
-          </div>
-
-          <aside className="cta-panel">
-            <p className="eyebrow">Личный кабинет</p>
-            <h3>Понятная точка входа для участника и администратора.</h3>
-            <p>
-              Один вход, роли открывают нужные инструменты. Так навигация остается
-              простой, а интерфейс не распадается на два разных сайта.
-            </p>
-            <div className="button-row">
-              <Link className="button button--primary" to={profileLink}>
-                {profileLabel}
-              </Link>
-              <Link className="button button--ghost" to="/auth">
-                Роли и доступ
-              </Link>
-            </div>
-          </aside>
-        </div>
-      </section>
-    </>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Container>
   )
 }

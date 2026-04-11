@@ -9,6 +9,7 @@ export interface NewsComment {
   role: AccountRole
   text: string
   createdAt: string
+  avatar?: string
 }
 
 export interface NewsItem {
@@ -20,6 +21,8 @@ export interface NewsItem {
   createdAt: string
   author: string
   image?: string
+  likes: number
+  viewerHasLiked: boolean
   comments: NewsComment[]
 }
 
