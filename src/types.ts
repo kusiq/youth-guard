@@ -59,8 +59,6 @@ export interface Session {
 export interface SignInPayload {
   email: string
   password: string
-  role: AccountRole
-  displayName?: string
 }
 
 export interface RegisterPayload {
@@ -83,4 +81,12 @@ export interface AppealDraft {
   address: string
   text: string
   image?: string
+}
+
+export interface AppSnapshot {
+  session: Session
+  profile: UserProfile
+  news: NewsItem[]
+  appeals: Appeal[]
+  unreadAppealCount: number
 }

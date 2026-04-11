@@ -4,7 +4,6 @@ import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded'
 import {
   Button,
   Container,
-  MenuItem,
   Paper,
   Stack,
   Tab,
@@ -15,7 +14,6 @@ import {
 import { useState, useTransition } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useAppState } from '../state/AppState'
-import type { AccountRole } from '../types'
 
 export function AuthPage() {
   const { isAuthenticated, session, signIn, register, signOut } = useAppState()
@@ -24,7 +22,6 @@ export function AuthPage() {
   const [signInForm, setSignInForm] = useState({
     email: 'admin@kostroma-demo.ru',
     password: 'demo-password',
-    role: 'admin' as AccountRole,
   })
   const [registerForm, setRegisterForm] = useState({
     displayName: 'Новый участник',
@@ -149,20 +146,6 @@ export function AuthPage() {
                     }))
                   }
                 />
-                <TextField
-                  select
-                  label="Роль для демо"
-                  value={signInForm.role}
-                  onChange={(event) =>
-                    setSignInForm((currentForm) => ({
-                      ...currentForm,
-                      role: event.target.value as AccountRole,
-                    }))
-                  }
-                >
-                  <MenuItem value="user">Обычный пользователь</MenuItem>
-                  <MenuItem value="admin">Администратор</MenuItem>
-                </TextField>
                 <Button type="submit" variant="contained" disabled={isPending}>
                   {isPending ? 'Открываем кабинет...' : 'Войти'}
                 </Button>

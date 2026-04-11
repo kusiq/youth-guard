@@ -1,11 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import {
-  useCallback,
   createContext,
   type PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useState,
 } from 'react'
 import {
   defaultProfile,
@@ -14,11 +15,12 @@ import {
   initialSession,
 } from '../data/mockData'
 import { useLocalStorageState } from '../hooks/useLocalStorageState'
+import { api } from '../lib/api'
 import type {
   Appeal,
   AppealDraft,
   AppealStatus,
-  NewsComment,
+  AppSnapshot,
   NewsDraft,
   NewsItem,
   RegisterPayload,
@@ -51,27 +53,6 @@ interface AppStateValue {
 
 const AppStateContext = createContext<AppStateValue | null>(null)
 
-function createId(prefix: string) {
-  const randomId =
-    globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10)
-
-  return `${prefix}-${randomId.slice(0, 8)}`
-}
-
-function buildDisplayName(email: string) {
-  const [name] = email.split('@')
-
-  if (name === undefined || name === '') {
-    return 'Участник'
-  }
-
-  return name
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
 function normalizeNewsItems(items: NewsItem[]) {
   return items.map((item) => ({
     ...item,
@@ -96,22 +77,28 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     'youth-guard-theme',
     'light',
   )
-  const [session, setSession] = useLocalStorageState<Session>(
-    'youth-guard-session',
-    initialSession,
-  )
-  const [profile, setProfile] = useLocalStorageState<UserProfile>(
-    'youth-guard-profile',
-    defaultProfile,
-  )
-  const [news, setNews] = useLocalStorageState<NewsItem[]>(
-    'youth-guard-news',
-    normalizeNewsItems(initialNews),
-  )
-  const [appeals, setAppeals] = useLocalStorageState<Appeal[]>(
-    'youth-guard-appeals',
-    normalizeAppeals(initialAppeals),
-  )
+  const [session, setSession] = useState<Session>(initialSession)
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile)
+  const [news, setNews] = useState<NewsItem[]>(normalizeNewsItems(initialNews))
+  const [appeals, setAppeals] = useState<Appeal[]>(normalizeAppeals(initialAppeals))
+  const [unreadAppealCount, setUnreadAppealCount] = useState(0)
+
+  const applySnapshot = useCallback((snapshot: AppSnapshot) => {
+    setSession(snapshot.session)
+    setProfile(snapshot.profile)
+    setNews(normalizeNewsItems(snapshot.news))
+    setAppeals(normalizeAppeals(snapshot.appeals))
+    setUnreadAppealCount(snapshot.unreadAppealCount)
+  }, [])
+
+  const syncRequest = useCallback(async (request: Promise<AppSnapshot>) => {
+    try {
+      const snapshot = await request
+      applySnapshot(snapshot)
+    } catch (error) {
+      console.error(error)
+    }
+  }, [applySnapshot])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -119,33 +106,39 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }, [theme])
 
   useEffect(() => {
-    const normalizedNews = normalizeNewsItems(news)
-    const hasLegacyShape = normalizedNews.some(
-      (item, index) =>
-        item.likes !== news[index]?.likes ||
-        item.viewerHasLiked !== news[index]?.viewerHasLiked,
-    )
+    let isMounted = true
 
-    if (hasLegacyShape) {
-      setNews(normalizedNews)
+    async function bootstrapAppState() {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        try {
+          const snapshot = await api.getAppState()
+
+          if (isMounted) {
+            applySnapshot(snapshot)
+          }
+
+          return
+        } catch (error) {
+          if (attempt === 7) {
+            console.error(error)
+            return
+          }
+
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, 250)
+          })
+        }
+      }
     }
-  }, [news, setNews])
 
-  useEffect(() => {
-    const normalizedAppeals = normalizeAppeals(appeals)
-    const hasLegacyShape = normalizedAppeals.some(
-      (item, index) => item.viewedByAdmin !== appeals[index]?.viewedByAdmin,
-    )
+    void bootstrapAppState()
 
-    if (hasLegacyShape) {
-      setAppeals(normalizedAppeals)
+    return () => {
+      isMounted = false
     }
-  }, [appeals, setAppeals])
+  }, [applySnapshot])
 
-  const unreadAppealCount = appeals.filter(
-    (appeal) => appeal.viewedByAdmin === false,
-  ).length
-  const isAuthenticated = session.role === 'guest' ? false : true
+  const isAuthenticated = session.role !== 'guest'
 
   const toggleTheme = useCallback(() => {
     setTheme((currentTheme) =>
@@ -154,159 +147,44 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }, [setTheme])
 
   const signIn = useCallback((payload: SignInPayload) => {
-    const nextDisplayName =
-      payload.role === 'admin'
-        ? 'Координатор штаба'
-        : payload.displayName?.trim() ||
-          profile.displayName ||
-          buildDisplayName(payload.email)
-
-    setSession({
-      role: payload.role,
-      displayName: nextDisplayName,
-      email: payload.email.trim(),
-      avatar: payload.role === 'admin' ? session.avatar : profile.avatar,
-    })
-
-    if (payload.role === 'user') {
-      setProfile((currentProfile) => ({
-        ...currentProfile,
-        displayName: nextDisplayName,
-        email: payload.email.trim(),
-      }))
-    }
-  }, [profile.avatar, profile.displayName, session.avatar, setProfile, setSession])
+    void syncRequest(api.signIn(payload))
+  }, [syncRequest])
 
   const register = useCallback((payload: RegisterPayload) => {
-    const nextProfile = {
-      ...profile,
-      displayName: payload.displayName.trim(),
-      email: payload.email.trim(),
-    }
-
-    setProfile(nextProfile)
-    setSession({
-      role: 'user',
-      displayName: nextProfile.displayName,
-      email: nextProfile.email,
-      avatar: nextProfile.avatar,
-    })
-  }, [profile, setProfile, setSession])
+    void syncRequest(api.register(payload))
+  }, [syncRequest])
 
   const signOut = useCallback(() => {
-    setSession(initialSession)
-  }, [setSession])
+    void syncRequest(api.signOut())
+  }, [syncRequest])
 
   const publishNews = useCallback((draft: NewsDraft) => {
-    const nextNewsItem: NewsItem = {
-      id: createId('news'),
-      title: draft.title.trim(),
-      summary: draft.summary.trim(),
-      body: draft.body,
-      category: draft.category,
-      createdAt: new Date().toISOString(),
-      author: session.displayName || 'Штаб Молодой Гвардии',
-      image: draft.image,
-      likes: 0,
-      viewerHasLiked: false,
-      comments: [],
-    }
-
-    setNews((currentNews) => [nextNewsItem, ...currentNews])
-  }, [session.displayName, setNews])
+    void syncRequest(api.publishNews(draft))
+  }, [syncRequest])
 
   const toggleNewsLike = useCallback((newsId: string) => {
-    setNews((currentNews) =>
-      currentNews.map((item) => {
-        if (item.id !== newsId) {
-          return item
-        }
-
-        return {
-          ...item,
-          likes: item.viewerHasLiked ? Math.max(0, item.likes - 1) : item.likes + 1,
-          viewerHasLiked: item.viewerHasLiked ? false : true,
-        }
-      }),
-    )
-  }, [setNews])
+    void syncRequest(api.toggleNewsLike(newsId))
+  }, [syncRequest])
 
   const addComment = useCallback((newsId: string, text: string) => {
-    const nextRole: NewsComment['role'] = session.role === 'admin' ? 'admin' : 'user'
-    const comment: NewsComment = {
-      id: createId('comment'),
-      author: session.displayName,
-      role: nextRole,
-      text: text.trim(),
-      createdAt: new Date().toISOString(),
-      avatar: session.avatar,
-    }
-
-    setNews((currentNews) =>
-      currentNews.map((item) =>
-        item.id === newsId
-          ? {
-              ...item,
-              comments: [...item.comments, comment],
-            }
-          : item,
-      ),
-    )
-  }, [session.avatar, session.displayName, session.role, setNews])
+    void syncRequest(api.addComment(newsId, text))
+  }, [syncRequest])
 
   const createAppeal = useCallback((draft: AppealDraft) => {
-    const nextAppeal: Appeal = {
-      id: createId('appeal'),
-      title: draft.title.trim(),
-      category: draft.category,
-      address: draft.address.trim(),
-      text: draft.text.trim(),
-      createdAt: new Date().toISOString(),
-      status: 'Отправлено',
-      authorName: session.displayName,
-      viewedByAdmin: false,
-      image: draft.image,
-    }
-
-    setAppeals((currentAppeals) => [nextAppeal, ...currentAppeals])
-  }, [session.displayName, setAppeals])
+    void syncRequest(api.createAppeal(draft))
+  }, [syncRequest])
 
   const updateProfile = useCallback((draft: UserProfile) => {
-    setProfile(draft)
-    setSession((currentSession) => ({
-      ...currentSession,
-      displayName: draft.displayName,
-      email: draft.email,
-      avatar: draft.avatar,
-    }))
-  }, [setProfile, setSession])
+    void syncRequest(api.updateProfile(draft))
+  }, [syncRequest])
 
   const markAppealsSeen = useCallback(() => {
-    setAppeals((currentAppeals) =>
-      currentAppeals.some((appeal) => appeal.viewedByAdmin === false)
-        ? currentAppeals.map((appeal) => ({
-            ...appeal,
-            viewedByAdmin: true,
-          }))
-        : currentAppeals,
-    )
-  }, [setAppeals])
+    void syncRequest(api.markAppealsSeen())
+  }, [syncRequest])
 
   const updateAppealStatus = useCallback((appealId: string, nextStatus: AppealStatus) => {
-    setAppeals((currentAppeals) =>
-      currentAppeals.map((appeal) =>
-        appeal.id === appealId
-          ? appeal.status === nextStatus && appeal.viewedByAdmin
-            ? appeal
-            : {
-                ...appeal,
-                status: nextStatus,
-                viewedByAdmin: true,
-              }
-          : appeal,
-      ),
-    )
-  }, [setAppeals])
+    void syncRequest(api.updateAppealStatus(appealId, nextStatus))
+  }, [syncRequest])
 
   const value = useMemo(
     () => ({
@@ -351,13 +229,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     ],
   )
 
-  return (
-    <AppStateContext.Provider
-      value={value}
-    >
-      {children}
-    </AppStateContext.Provider>
-  )
+  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
 }
 
 export function useAppState() {
